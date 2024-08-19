@@ -5,55 +5,59 @@ open   RomanNumerals
 
 // This variant uses partial active patterns.
 
-let parseRomanNumeral (roman: string) : RomanInt =
-  let length = String.length roman
+let parseRomanNumeral input  : RomanInt =
+  let length = String.length input
   let get (chars: string) i result =
-    if i >= length then  None else
-      let c = roman[i]
+    if i >= length then
+      None
+    else
+      let c = input[i]
       let p = chars.IndexOf c
       if p = -1 then
-//      printfn "g %d %c %d" i roman[i] p
-        None else
-        Some (result p c i)
+//      printfn $"g %d{i} %c{c} %d{p}"
+        None
+      else
+        Some (result c p i)
   let (|V|_|) i =
-    let result p c i =
-//    printfn "V %d %c %d" i roman[i] p
-      p,c,i+1
+    let result c p i =
+//    printfn $"V %d{i} %c{c} %d{p}"
+      c,p,i+1
     get "VLD" i result
   let (|I|_|) i =
-    let result p c i =
-      let rec count acc i =
-        let beyond = i >= length  ||  roman[i] <> c
-        if  beyond then  acc
-                   else  count (acc+1) (i+1)
-      let n  = count 1 (i+1)
+    let result c p i =
+      let rec countSame acc i =
+        let isSame = i < length  &&  input[i] = c
+        if  isSame then  countSame (acc+1) (i+1)
+                   else  acc
+      let n = countSame 1 (i+1)
+//    printfn $"I %d{i} %c{c} %d{p} %d{n}"
       let ok = n <= 4
-//    printfn "I %d %c %d %d" i roman[i] p n
-      p,c,n,ok,i+n
+      c,p,n,ok,i+n
     get "IXCM" i result
-  let rec next sPrev pPrev accPrev iPrev : RomanInt =
-    let eq p p2 = p < pPrev  &&  p = p2
+  let rec nextDigit s p acc i : RomanInt =
+    let eq p1 p2 =  p1 = p2  &&  p1 < p
     let str c n = System.String(c, n)
-    let acc p n = accPrev + n * pown 10 p
-    match iPrev with
-    | i                                   when i >= length ->  Value accPrev
-    | I (p,c,1,true ,V (p2,c2       ,i))  when eq p  p2    ->  next  $"{c}{c2}"            p (acc p    4 ) i  // IV
-    | I (p,c,1,true ,I (p2,c2,1,true,i))  when eq p (p2-1) ->  next  $"{c}{c2}"            p (acc p    9 ) i  // IX
-    | V (p,c        ,I (p2,c2,n,true,i))  when eq p  p2    ->  next ($"{c}"  + (str c2 n)) p (acc p (5+n)) i  // VIIII
-    | I (p,c,n,true ,i)                   when eq p  p     ->  next            (str c  n)  p (acc p    n ) i  // IIII
-    | V (p,c        ,i)                   when eq p  p     ->  next  $"{c}"                p (acc p    5 ) i  // V
-    | I (_,c,_,false,_)                                    ->  Error (BadOrder (sPrev + (str c 4),c))    // IIIII
-    | I (_,c,_,_    ,_)                                    ->  Error (BadOrder (sPrev            ,c))    // IIX, IVI, VIX ..
-    | V (_,c        ,_)                                    ->  Error (BadOrder (sPrev            ,c))    // IIV, IVV, VIV ..
-    | i                                                    ->  Error (BadChar  (roman[0..i-1],roman[i])) // XCVe
-  match roman with
+    let acc' p n = acc + n * pown 10 p
+    match i with
+    | i                                   when i >= length ->  Value acc
+    | I (c,p,1,true ,V (c2,p2       ,i))  when eq p  p2    ->  nextDigit  $"{c}{c2}"            p (acc' p    4 ) i  // IV
+    | I (c,p,1,true ,I (c2,p2,1,true,i))  when eq p (p2-1) ->  nextDigit  $"{c}{c2}"            p (acc' p    9 ) i  // IX
+    | V (c,p        ,I (c2,p2,n,true,i))  when eq p  p2    ->  nextDigit ($"{c}"  + (str c2 n)) p (acc' p (5+n)) i  // VIIII
+    | I (c,p,n,true ,i)                   when eq p  p     ->  nextDigit            (str c  n)  p (acc' p    n ) i  // IIII
+    | V (c,p        ,i)                   when eq p  p     ->  nextDigit  $"{c}"                p (acc' p    5 ) i  // V
+    | I (c,_,_,false,_)                                    ->  Error (BadOrder (s + (str c 4),c))    // IIIII
+    | I (c,_,_,_    ,_)                                    ->  Error (BadOrder (s            ,c))    // IIX, IVI, VIX ..
+    | V (c,_        ,_)                                    ->  Error (BadOrder (s            ,c))    // IIV, IVV, VIV ..
+    | i                                                    ->  Error (BadChar  (input[0..i-1],input[i])) // XCVe
+  match input with
   | "" ->  Error Empty
-  | _  ->  next "" (placeMax+1) 0 0
+  | _  ->  nextDigit "" (placeMax+1) 0 0
 
 
 
 (*
 
+  Output, if printfs are uncommented.
   Partial active patterns have a problem with redundant calls to the patterns.
   In the printfs, a repeat of the i number in column 2
   indicates an active pattern that is called redundantly.

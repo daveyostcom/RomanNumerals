@@ -3,51 +3,56 @@ module RomanNumerals3
 
 open   RomanNumerals
 
-// This variant one partial active pattern instead of two.
+// This variant uses one partial active pattern instead of two.
 
-let parseRomanNumeral (roman: string) : RomanInt =
-  let length = String.length roman
-  let vChar p c i =
-//  printfn "V %d %c %d" i c p
-    5,p,c,1,true,i+1
-  let iChar p c i =
-    let rec count acc i =
-      let beyond = i >= length  ||  roman[i] <> c
-      if  beyond then  acc
-                 else  count (acc+1) (i+1)
-    let n  = count 1 (i+1)
-    let ok = n <= 4
-//  printfn "I %d %c %d %d" i c p n
-    1,p,c,n,ok,i+n
+let parseRomanNumeral input  : RomanInt =
+  let length = String.length input
   let (|C|_|) i =
-    if i >= length then  None else
-    let c = roman[i]
-    let p = "IXCMVLD".IndexOf c // p for place or power of 10
-    match p with
-    | -1            ->  None
-    | p  when p < 4 ->  Some (iChar  p    c i)
-    | _             ->  Some (vChar (p-4) c i) 
-  let rec next s p acc i : RomanInt =
+    if i >= length then
+      None
+    else
+      let vChar c p =
+//      printfn $"V %d{i} %c{c} %d{p}"
+        5,c,p,1,true,i+1
+      let iChar c p =
+        let rec countSame acc i =
+          let isSame = i < length  &&  input[i] = c
+          if  isSame then  countSame (acc+1) (i+1)
+                     else  acc
+        let n = countSame 1 (i+1)
+//      printfn $"I %d{i} %c{c} %d{p} %d{n}"
+        let ok = n <= 4
+        1,c,p,n,ok,i+n
+      let c = input[i]
+      let x = "IVXLCDM".IndexOf c
+      let p = x / 2                 // p for place or power of 10
+      let isIXCM x =  x % 2 = 0
+      match x with
+      | -1                  ->  None
+      | x  when x |> isIXCM ->  Some (iChar c p)
+      | _                   ->  Some (vChar c p)
+  let rec nextDigit s p acc i  : RomanInt =
     let eq p1 p2 =  p1 = p2  &&  p1 < p  
     let str c n = System.String(c, n)
     let acc' p n = acc + n * pown 10 p
     match i with
     | i                                       when i >= length ->  Value acc
-    | C (1,p,c,1,true ,C (5,p2,c2,_,_   ,i))  when eq p  p2    ->  next  $"{c}{c2}"            p (acc' p    4 ) i  // IV
-    | C (1,p,c,1,true ,C (1,p2,c2,1,true,i))  when eq p (p2-1) ->  next  $"{c}{c2}"            p (acc' p    9 ) i  // IX
-    | C (5,p,c,_,_    ,C (1,p2,c2,n,true,i))  when eq p  p2    ->  next ($"{c}"  + (str c2 n)) p (acc' p (5+n)) i  // VIIII
-    | C (x,p,c,n,true ,i)                     when eq p  p     ->  next            (str c  n)  p (acc' p (x*n)) i  // IIII, V replaces 2 lines
-    | C (1,_,c,_,false,_)                                      ->  Error (BadOrder (s + (str c 4),c))         // IIIII
-    | C (_,_,c,_,_    ,_)                                      ->  Error (BadOrder (s            ,c))         // IIX, IIV, ...
-    | i                                                        ->  Error (BadChar  (roman[0..i-1],roman[i]))  // XCVe
-  match roman with
+    | C (1,c,p,1,true ,C (5,c2,p2,_,_   ,i))  when eq p  p2    ->  nextDigit  $"{c}{c2}"            p (acc' p    4 ) i  // IV
+    | C (1,c,p,1,true ,C (1,c2,p2,1,true,i))  when eq p (p2-1) ->  nextDigit  $"{c}{c2}"            p (acc' p    9 ) i  // IX
+    | C (5,c,p,_,_    ,C (1,c2,p2,n,true,i))  when eq p  p2    ->  nextDigit ($"{c}"  + (str c2 n)) p (acc' p (5+n)) i  // VIIII
+    | C (x,c,p,n,true ,i)                     when eq p  p     ->  nextDigit            (str c  n)  p (acc' p (x*n)) i  // IIII or V
+    | C (1,c,_,_,false,_)                                      ->  Error (BadOrder (s + (str c 4),c))         // IIIII
+    | C (_,c,_,_,_    ,_)                                      ->  Error (BadOrder (s            ,c))         // IIX, IIV, ...
+    | i                                                        ->  Error (BadChar  (input[0..i-1],input[i]))  // XCVe
+  match input with
   | "" ->  Error Empty
-  | _  ->  next "" (placeMax+1) 0 0
+  | _  ->  nextDigit "" (placeMax+1) 0 0
 
 
 
 (*
 
+  Output, if printfs are uncommented.
   Partial active patterns have a problem with redundant calls to the patterns.
   In the printfs, a repeat of the i number in column 2
   indicates an active pattern that is called redundantly.

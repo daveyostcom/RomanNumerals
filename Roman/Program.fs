@@ -97,10 +97,10 @@ let main argv =
       runAll generateBadInputs
     else
       // Uncomment the printfs in the active pattern code
-      // to look for redundant calls of active patterns.
+      // to show redundant calls of active patterns.
       seq {
         printfn "CDXCIIII"               // first 3 of 5 patterns
-        yield   "CDXCIIII",Value 493
+        yield   "CDXCIIII",Value 494
         printfn "LXXXXV"                 // last 2 
         yield   "LXXXXV"  ,Value  95 }
       |> Seq.map parseOne

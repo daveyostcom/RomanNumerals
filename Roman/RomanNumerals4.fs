@@ -10,7 +10,6 @@ module RomanNumerals4
 
 open RomanNumerals
 
-
 let parseRomanNumeral input  : RomanInt =
   let length = String.length input
   let (|I|V|ITooMany|Bad|Done|) i =
@@ -21,10 +20,10 @@ let parseRomanNumeral input  : RomanInt =
 //      printfn $"V %d{i} %c{c} %d{p}"
         V (c,p,i+1)
       let iChar c p =
-        let rec countSame n i =
+        let rec countSame acc i =
           let isSame = i < length  &&  input[i] = c
-          if  isSame then  countSame (n+1) (i+1)
-                     else  n
+          if  isSame then  countSame (acc+1) (i+1)
+                     else  acc
         let n = countSame 1 (i+1)
 //      printfn $"I %d{i} %c{c} %d{p} %d{n}"
         if n > 4 then  ITooMany c
@@ -38,7 +37,7 @@ let parseRomanNumeral input  : RomanInt =
       | x  when x |> isIXCM ->  iChar c p
       | _                   ->  vChar c p
   let rec nextDigit s p acc i  : RomanInt =
-    let eq p1 p2 = p1 = p2  &&  p1 < p  
+    let eq p1 p2 =  p1 = p2  &&  p1 < p  
     let str c n = System.String(c, n)
     let acc' p n = acc + n * pown 10 p
     match i with

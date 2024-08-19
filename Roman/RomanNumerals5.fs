@@ -4,11 +4,15 @@ module RomanNumerals5
 open RomanNumerals
 
 // What if F# didn’t have multi-case active patterns?
-// This variant uses a function returning a choice type.
-// The matching for adjacent characters (IV, VI, IX) is an ad hoc mess,
+// This variant uses a function returning a choice type
+// in place of the multi-case active pattern in example 4.
+// You can’t chain choice types because there is no way of passing
+// the i argument down the chain.  So we can’t do this:
+//   | I (c,p,1,V (c2,p2  ,i))
+// As a result, matching for adjacent characters (IV, VI, IX) is an ad hoc mess
 // and it still isn’t complete; it fails on some BadOrder inputs
 // because the backtracking necessary to handle them will require
-// even more complexity than you see here.
+// even more complexity than shown here.
 
 // This variant does not pass the bad-inputs test.
 
@@ -16,7 +20,7 @@ type Token =
   | I        of char * int * int * int
   | V        of char * int * int
   | ITooMany of char
-  | Bad     of string * char
+  | Bad      of string * char
   | Done
   
 let parseRomanNumeral (roman: string) : RomanInt =
